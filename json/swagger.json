@@ -1,0 +1,843 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "title" : "HCMS REST-API for ECM/Content Hub.",
+    "description" : "This is the contract of entities of the Headless CMS (HCMS) REST-API which is used to retrieve content and related metadata for EMC/Content Hub",
+    "version" : "1.0"
+  },
+  "servers" : [ {
+    "url" : "http://hcms-api.juliusbaer.com/hcms/v1.5"
+  }, {
+    "url" : "http://3.122.242.96:8080/hcms/v1.5"
+  } ],
+  "paths" : {
+    "/entity/{entity}" : {
+      "get" : {
+        "tags" : [ "generic hcms api" ],
+        "description" : "/entity provides read access to all entities defined in HCMS with the generic HCMS API. More specific documentation for each specific entity can be found below. An entity is a predefined mapping between censhare asset structure and JSON Datastructure. The structure of an entity is defined as a JSON Schema.",
+        "parameters" : [ {
+          "name" : "entity",
+          "in" : "path",
+          "description" : "Name of the entity from which content should be retreived. Following entities are exposed: contentUnitArticle, contentUnitText,image, contentUnit",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "string",
+            "example" : "contentUnitText",
+            "enum" : [ "contentUnitArticle", "contentUnitText", "image", "contentUnit" ]
+          }
+        }, {
+          "name" : "query",
+          "in" : "query",
+          "description" : "<p>The query language allows specifying conditions using a dot separated path of JSON property names. This specifies the schema type to a filter optionally followed by of one of the comparison operators = , != , < , <= , >= , < , =^ and a JSON encoded value. =^ represents the prefix operator which can only be applied on string values. <br/>Example: address.city=\"New York\" </p>\n<p>If the comparison operator and the value are missing the condition tests for the existence of a value (not null). <br/> Example: adress.city </p>\n<p> The conditions can be combined using boolean logic with the operators in order of precedence ! , & , and | .<br/> Example: address.city=\"New York\" & address.street=\"Broadway\"  </p> <p> The precedence can also be modified by grouping the expressions using parenthesis ( , ) . <br/> Example: address.city=\"New York\" & (address.street=\"Broadway\" | address.street=\"Park Avenue\"). </p>",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "defines a maximum number of the returned items. When missing, the default value from the configuration is used; if there is no such value configured, the default is 100. A negative or a zero value means unlimited; this is not recommended because this can cause a potentially huge result size",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "defines how many items since the beginning of the list is be skipped. When missing, 0 is used (i.e. no offset, listing starts at the very beginning). Negative values are silently ignored (and treated as 0). It is allowed for the offset to be higher than the total number of items (the result list is empty in this case). It is possible to have a positive offset with a negative (disabled) limit.",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation returns a set of object selected in the query. If no objects selected an empty result is returned.",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "required" : [ "result" ],
+                  "type" : "object",
+                  "properties" : {
+                    "result" : {
+                      "type" : "array",
+                      "items" : {
+                        "oneOf" : [ {
+                          "$ref" : "#/components/schemas/ContentUnitArticle"
+                        }, {
+                          "$ref" : "#/components/schemas/ContentUnitText"
+                        }, {
+                          "$ref" : "#/components/schemas/contentUnit"
+                        }, {
+                          "$ref" : "#/components/schemas/Image"
+                        } ]
+                      }
+                    },
+                    "offset" : {
+                      "type" : "integer",
+                      "description" : "offset used (0 when the offset parameter is missing or negative)"
+                    },
+                    "limit" : {
+                      "type" : "integer",
+                      "description" : "maximum number of items in the result"
+                    },
+                    "count" : {
+                      "type" : "integer",
+                      "description" : "the number of items in the result"
+                    },
+                    "total-count" : {
+                      "type" : "integer",
+                      "description" : "the total number of results (un-paged)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request"
+          },
+          "403" : {
+            "description" : "Access forbidden"
+          },
+          "404" : {
+            "description" : "Not found thrown if entity does not exist."
+          }
+        }
+      }
+    },
+    "/entity/contentUnitArticle" : {
+      "get" : {
+        "tags" : [ "content and metadata" ],
+        "description" : "Reads a ConntentUnits including metadata, text and image references",
+        "parameters" : [ {
+          "name" : "query",
+          "in" : "query",
+          "description" : "<p>Selection criteria for the content unit to read. E.g. cuid=\"975551\" </p> <p>Multiple content unit ids can be queried in one call. E.g. cuid=\"975551\"|cuid=\"975552-DE\"</p> <p>To query for content units modified since use the protperty modifiedDate. E.g. modifiedDate>\"2019-03-01T00:00:00Z\"</p>",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "cuid=\"975551\"|cuid=\"975551-DE\""
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation returns a set of objects",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "result" : {
+                      "type" : "array",
+                      "items" : {
+                        "oneOf" : [ {
+                          "$ref" : "#/components/schemas/ContentUnitArticle"
+                        } ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request"
+          },
+          "403" : {
+            "description" : "Access forbidden"
+          }
+        }
+      }
+    },
+    "/entity/contentUnitsMetadata" : {
+      "get" : {
+        "tags" : [ "metadata" ],
+        "description" : "Provides read access to all content Units and their metadata. Parameters can be used to restrict result for example by changedate. This operation is intended to be used by the NCN to query for changed investment stories, investment ideas and other content units.",
+        "parameters" : [ {
+          "name" : "query",
+          "in" : "query",
+          "description" : "Proposed query for NCN modifiedDate>\"2019-03-25T11:57:32Z\"",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "description" : "defines a maximum number of the returned items. When missing, the default value from the configuration is used; if there is no such value configured, the default is 100. A negative or a zero value means unlimited; this is not recommended because this can cause a potentially huge result size",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "description" : "defines how many items since the beginning of the list is be skipped. When missing, 0 is used (i.e. no offset, listing starts at the very beginning). Negative values are silently ignored (and treated as 0). It is allowed for the offset to be higher than the total number of items (the result list is empty in this case). It is possible to have a positive offset with a negative (disabled) limit.",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "successful operation returns a set of objects",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "result" : {
+                      "type" : "array",
+                      "items" : {
+                        "$ref" : "#/components/schemas/contentUnit"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request"
+          },
+          "403" : {
+            "description" : "Access forbidden"
+          }
+        }
+      }
+    },
+    "/entity/contentUnitText" : {
+      "get" : {
+        "tags" : [ "content" ],
+        "description" : "Reads a ContentUnit text and image references.",
+        "parameters" : [ {
+          "name" : "query",
+          "in" : "query",
+          "description" : "<p>Selection criteria for the content to read. E.g. parent.cuid=\"975551\"&lang=\"de\"</p> <p>Multiple content unit ids can be queried in one call. E.g. (parent[cuid=\"975551\"|cuid=\"975552-DE\"])&lang=\"de\"</p> <p>Keep in mind that contentUnitText reflects only the text of a contentUnit in a specific language. Contrary to contentUnit which reflects a contentUnit with all its texts in different languages. Therefore the cuid is referenced on the parent. E.g. parent.cuid.</p>",
+          "required" : false,
+          "style" : "form",
+          "explode" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "parent.cuid=\"975551\"&lang=\"de\""
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation returns a set of objects",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "result" : {
+                      "type" : "array",
+                      "items" : {
+                        "$ref" : "#/components/schemas/ContentUnitText"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request"
+          },
+          "403" : {
+            "description" : "Access forbidden"
+          }
+        }
+      }
+    },
+    "/hcms/v1.5/entity/image" : {
+      "get" : {
+        "tags" : [ "images" ],
+        "description" : "Provides access to all the imagse accessible through hcms.",
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation returns a set of objects",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "result" : {
+                      "type" : "array",
+                      "items" : {
+                        "$ref" : "#/components/schemas/Image"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Access forbidden"
+          }
+        }
+      }
+    },
+    "/entity/image/{id}" : {
+      "get" : {
+        "tags" : [ "images" ],
+        "description" : "Returns information how to retreive an image in different formats.",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "description" : "Asset Id of the image. This is the same Id that is used in the text content in the image elements.",
+          "required" : true,
+          "style" : "simple",
+          "explode" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation returns a set of objects",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "result" : {
+                      "type" : "array",
+                      "items" : {
+                        "$ref" : "#/components/schemas/Image"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request"
+          },
+          "404" : {
+            "description" : "Not found returned if image does with ID does not exist."
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ContentUnitArticle" : {
+        "type" : "object",
+        "properties" : {
+          "contentLevel" : {
+            "type" : "string",
+            "description" : "The level of content. Values can be 1,2,3"
+          },
+          "creationDate" : {
+            "type" : "string",
+            "description" : "date/time of the content unit creation, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z",
+            "example" : "2019-05-03T11:02:51Z"
+          },
+          "cuid" : {
+            "type" : "array",
+            "description" : "List of all Content Unit IDs this content is valid for",
+            "example" : [ "975551-AT", "975551-BH", "975551-IN", "975551-IS", "975551-JP", "975551-LB", "975551-ZA", "975551-AE", "975551-Z3", "975551-Z4", "975551-global", "975551-hongKongSingapore", "975551-HK", "975551-SG" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "id" : {
+            "type" : "integer",
+            "description" : "Article Asset ID",
+            "example" : 1221782
+          },
+          "keyVisual" : {
+            "type" : "array",
+            "description" : "Keyvisual Items",
+            "example" : [ {
+              "id" : 1131874,
+              "variants" : "http://3.122.242.96:8080/hcms/v1.5/entity/contentUnitArticle/ 1221782/media/MDExMzE4NzQvMC9BMTdBNkIwRjgyOTRCRDFBOTNGNzUzRkRBNDk1Q0Y1MTU3OTNDRkZB"
+            } ],
+            "items" : {
+              "$ref" : "#/components/schemas/Image"
+            }
+          },
+          "keywords" : {
+            "type" : "string",
+            "description" : "Keywords seperated by comas",
+            "example" : "investment views, next generation, digital disruption, artificial intelligence, equities, funds, etf"
+          },
+          "modifiedDate" : {
+            "type" : "string",
+            "description" : "date/time of the content unit was last modified, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Name of Article Asset",
+            "example" : "Artificial Intelligence driving the digital revolution – cloud computing as a key catalyst"
+          },
+          "publicationType" : {
+            "type" : "string",
+            "description" : "Publication Type - like Investmentview, marketopportunity",
+            "example" : "investmentview"
+          },
+          "subPublicationType" : {
+            "type" : "string",
+            "description" : "Sub-Publication Type - like speacial, standard",
+            "example" : "standard"
+          },
+          "successor" : {
+            "type" : "array",
+            "description" : "list of peculiarities for which this content is relevant. For Investment Story level 2 content this is productionLocation (Example: switzerland) and RMLocation (Example: CH, DE, GB. ICM Defined as well Z1, Z2, Z3, Z4). ProductionLocation an feature maintained in censhare by the writer reflecting where the content is created. RMLocation is derived from productionLocation based on rules defined by ICM.",
+            "example" : [ {
+              "key" : "productionLocation",
+              "value" : [ "switzerland" ]
+            }, {
+              "key" : "rmLocation",
+              "value" : [ "Z1", "UY", "CH", "MC", "PA", "DU", "GG", "BS", "CL" ]
+            } ],
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "key" : {
+                  "type" : "string",
+                  "description" : "E.g. RMLocaction, productionLocation"
+                },
+                "value" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string",
+                    "description" : "E.g. DE, FR, switzerland"
+                  }
+                }
+              }
+            }
+          },
+          "successorChilds" : {
+            "type" : "array",
+            "description" : "list of childer of this content unit. For investment story level 1 content this contains the cuids of the level 2 content.",
+            "example" : [ {
+              "cuid" : [ "975551-switzerland", "975551-CH" ],
+              "id" : 1222480
+            }, {
+              "cuid" : [ "975551-luxembourg", "975551-DE", "975551-LU", "975551-NL", "975551-IE", "975551-Z2" ],
+              "id" : 1222491
+            } ],
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "id" : {
+                  "type" : "integer"
+                },
+                "cuid" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "successorParent" : {
+            "type" : "array",
+            "description" : "list of parents of this content unit. For investment story level 2 content this contains the cuid of the level 1 content.",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "id" : {
+                  "type" : "integer"
+                },
+                "cuid" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          },
+          "text" : {
+            "type" : "object",
+            "properties" : {
+              "<language>" : {
+                "type" : "object",
+                "properties" : {
+                  "id" : {
+                    "type" : "integer"
+                  },
+                  "images" : {
+                    "type" : "array",
+                    "items" : {
+                      "$ref" : "#/components/schemas/Image"
+                    }
+                  },
+                  "url" : {
+                    "type" : "string"
+                  },
+                  "version" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            },
+            "description" : "List of the urls to load text of the content unit in different languages.",
+            "example" : "{\"de\":{\"id\":1221783,\"version\":11,\"url\":\"http://3.122.242.96:8080/hcms/v1.5/entity/contentUnitArticle/1221782/storage/MDAxMjIxNzgzLzAvbWFzdGVy\",\"images\":[{\"name\":\"iv_capturing_ng_chart_de.png\",\"id\":1020373,\"variants\":\"http://3.122.242.96:8080/hcms/v1.5/entity/contentUnitArticle/1221782 /media/MDEwMjAzNzMvMC8xODhFNzI2RkQ0QjMxNTYyNEYwN0M2Rjc5QjcyMUQxMzMzQTI4RkUx\"}]},\"en\":{\"id\":1221784,\"version\":9,\"url\":\"http://3.122.242.96:8080/hcms/v1.5/entity/contentUnitArticle/1221782/storage/MDAxMjIxNzg0LzAvbWFzdGVy\",\"images\":[{\"name\":\"Resources-Vaibhav\",\"id\":1020411,\"variants\":\"http://3.122.242.96:8080/hcms/v1.5/entity/contentUnitArticle/1221782 /media/MDEwMjA0MTEvMC84RkJCNzhBQzIxOUJDRTUxQzFCMDdEN0E0RjZCNzY4MzczNkQwQzZC\"}]}}"
+          },
+          "version" : {
+            "type" : "integer",
+            "description" : "The version of the content unit. The version is increased for any change of the content unit that is published. E.g. change of metadata, change of text, add translation",
+            "example" : 12
+          }
+        }
+      },
+      "ContentUnitText" : {
+        "type" : "object",
+        "properties" : {
+          "contentLevel" : {
+            "type" : "string",
+            "description" : "The level of content. Values can be 1,2,3"
+          },
+          "creationDate" : {
+            "type" : "string",
+            "description" : "Date of creation - yyyy-MM-ddThh:mm:ssZ."
+          },
+          "id" : {
+            "type" : "integer",
+            "description" : "Text asset ID"
+          },
+          "images" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Image"
+            }
+          },
+          "lang" : {
+            "type" : "string",
+            "description" : "Keywords"
+          },
+          "modifiedDate" : {
+            "type" : "string",
+            "description" : "Modification Date - yyyy-MM-ddThh:mm:ssZ"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "Name of text Asset"
+          },
+          "parent" : {
+            "type" : "object",
+            "properties" : {
+              "id" : {
+                "type" : "integer"
+              },
+              "cuid" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "url" : {
+            "type" : "string",
+            "description" : "Link of content of text asset."
+          },
+          "version" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "Image" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "description" : "Name of the image"
+          },
+          "id" : {
+            "type" : "string",
+            "description" : "ID of Image Asset."
+          },
+          "variants" : {
+            "type" : "string",
+            "description" : "Link of the variants endpoints. Different variants can be accessible by suffixing the keys preview, master, thumnail,16x9,3x4 base url to fetch different variants of the image. E.g. http://.../entity/contentUnitArticle/123456/storage/ASDFasdf/preview"
+          }
+        },
+        "description" : "In the text for each image an image tage is placed. Example: <image alt-text=\"\" assetId=1020373\" seo-title=\"\"/>. The assetId attribute uniquely identifies the image and is used to identify the correct image url. <br/> <br/> There are 3 ways to retreive the image url:<ol><li>contentUnitArticle entity contains the url</li><li>contentUnitText entity contains the url</li><li>image entity can be used to query the url</li></ol><br/> <br/> To this url the desired variant needs to be appended to get the image. Example: http://3.122.242.96:8080/hcms/v1.5/entity/contentUnitArticle/1221782/media/MDEwMjAzNzMvMC8xODhFNzI2RkQ0QjMxNTYyNEYwN0M2Rjc5QjcyMUQxMzMzQTI4RkUx/preview"
+      },
+      "contentUnit" : {
+        "required" : [ "assetId", "creationDate", "cuid", "modifiedDate", "version" ],
+        "type" : "object",
+        "properties" : {
+          "cuid" : {
+            "type" : "string",
+            "description" : "The unique identifier of the content unit as a string."
+          },
+          "assetId" : {
+            "type" : "integer",
+            "description" : "The CMS internal identifier of the asset holding the generated content of the content unit."
+          },
+          "creationDate" : {
+            "type" : "string",
+            "description" : "date/time of the content unit creation, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z",
+            "format" : "date-time"
+          },
+          "modifiedDate" : {
+            "type" : "string",
+            "description" : "date/time of the content unit was last modified, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "description" : "The version of the content unit. The version is increased for any change of the content unit that is published. E.g. change of metadata, change of text, add translation"
+          },
+          "contentLevel" : {
+            "type" : "integer",
+            "description" : "Several levels of content units may exist (1-N). For ICM two levels are available through this interface: 1=Investment Story, 2=Investment Idea"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "The internal name of the content unit."
+          },
+          "parentCuid" : {
+            "type" : "array",
+            "description" : "Lists the unique identifiers of the direct parents content unit. Only applicable for content level bigger than 1. For ICM a level 2 content has only one parent level 1 content.",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "childCuid" : {
+            "type" : "array",
+            "description" : "A list of all children CUID of this content unit.",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "publicationDate" : {
+            "type" : "string",
+            "description" : "date/time when the content unit was published for the first time, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z",
+            "format" : "date-time"
+          },
+          "language" : {
+            "type" : "string",
+            "description" : "The master language in ISO 639-1 (en, de, fr, it, es)"
+          },
+          "additionalLanguages" : {
+            "type" : "array",
+            "description" : "Additional language the content unit is translated. ISO 639-1 (en, de, fr, it, es)",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "validFrom" : {
+            "type" : "string",
+            "description" : "date/time when the content unit validity period starts, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z",
+            "format" : "date-time"
+          },
+          "validTo" : {
+            "type" : "string",
+            "description" : "date/time when the content unit validity period ends, in ISO 8601 UTC encoding. Examples: 2019-03-25T11:57:32.123Z, 2019-03-25T11:57:32Z",
+            "format" : "date-time"
+          },
+          "successor" : {
+            "type" : "array",
+            "description" : "list of peculiarities for which this content is relevant. For Investment Story level 2 content this is productionLocation (Example: switzerland) and RMLocation (Example: CH, DE, GB. ICM Defined as well Z1, Z2, Z3, Z4). ProductionLocation an feature maintained in censhare by the writer reflecting where the content is created. RMLocation is derived from productionLocation based on rules defined by ICM.",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "key" : {
+                  "type" : "string",
+                  "description" : "E.g. RMLocaction, productionLocation"
+                },
+                "value" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string",
+                    "description" : "E.g. DE, FR, switzerland"
+                  }
+                }
+              }
+            }
+          },
+          "investmentHorizon" : {
+            "type" : "string",
+            "description" : "E.g. classic, trend, long term, short term, .."
+          },
+          "keywords" : {
+            "type" : "string",
+            "description" : "A free text containing alist of keywords used to describe the content unit seperated by comma."
+          },
+          "authors" : {
+            "type" : "object",
+            "properties" : {
+              "writers" : {
+                "type" : "array",
+                "description" : "Official authors published.",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "id" : {
+                      "type" : "string"
+                    },
+                    "name" : {
+                      "type" : "string"
+                    },
+                    "email" : {
+                      "type" : "string"
+                    }
+                  }
+                }
+              },
+              "reviewers" : {
+                "type" : "array",
+                "description" : "Reviewers involved in editing the content.",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "id" : {
+                      "type" : "string"
+                    },
+                    "name" : {
+                      "type" : "string"
+                    },
+                    "email" : {
+                      "type" : "string"
+                    }
+                  }
+                }
+              }
+            },
+            "description" : "A list of official author names to be published."
+          },
+          "inInstrumentISINs" : {
+            "type" : "array",
+            "description" : "A list of in financial instrument identifiers which are in scope for investing. Only available on ICM level 1 Investment Stories.",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "outInstrumentISINs" : {
+            "type" : "array",
+            "description" : "A list of out financial instrument identifiers which are in scope for investing. Only available on ICM level 1 Investment Stories.",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "neutralInstrumentISINs" : {
+            "type" : "array",
+            "description" : "A list of neutral financial instrument identifiers which are in scope for investing. Only available on ICM level 1 Investment Stories.",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "assetClasses" : {
+            "type" : "array",
+            "description" : "A list of asset classes related to the content unit.",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "key" : {
+                  "type" : "string",
+                  "description" : "Internal Keys used and managed in censhare (e.g. root.1.13). In future these keys could be imported from PSP and reflect real PSP keys."
+                },
+                "label_en" : {
+                  "type" : "string",
+                  "description" : "The english label associated with the key"
+                }
+              }
+            }
+          },
+          "instrumentTypes" : {
+            "type" : "array",
+            "description" : "A list of instrument types related to the content unit.",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "key" : {
+                  "type" : "string",
+                  "description" : "Internal Keys used and managed in censhare (e.g. root.1.13). In future these keys could be imported from PSP and reflect real PSP keys."
+                },
+                "label_en" : {
+                  "type" : "string",
+                  "description" : "english label"
+                }
+              }
+            }
+          },
+          "themes" : {
+            "type" : "array",
+            "description" : "A list of themes related to the content unit.",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "key" : {
+                  "type" : "string",
+                  "description" : "Internal Keys used and managed in censhare (e.g. root.1.13). In future these keys could be imported from PSP and reflect real PSP Keys."
+                },
+                "label_en" : {
+                  "type" : "string",
+                  "description" : "english label"
+                }
+              }
+            }
+          },
+          "sectors" : {
+            "type" : "array",
+            "description" : "A list of industry sectors related to the content unit.",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "key" : {
+                  "type" : "string",
+                  "description" : "Internal Keys used and managed in censhare (e.g. root.1.13). In future these keys could be imported from PSP and reflect real PSP Keys."
+                },
+                "label_en" : {
+                  "type" : "string",
+                  "description" : "english label"
+                }
+              }
+            }
+          },
+          "publicationType" : {
+            "type" : "string",
+            "description" : "e.g. market opportunity, Investment view, switch idea, ..."
+          },
+          "SubPublicationType" : {
+            "type" : "string",
+            "description" : "e.g. standard, in the spotlight, single switch, ..."
+          },
+          "articleType" : {
+            "type" : "string",
+            "description" : "e.g. ICM Story, Disclaimer, Product, ..."
+          },
+          "keyVisual" : {
+            "type" : "string",
+            "description" : "Base URL to fetch key visual in different variations"
+          },
+          "publicationState" : {
+            "type" : "string",
+            "description" : "Writer can mark Investment Stories either as deleted or archived. These Ivenstment stories will stil be available through HCMS and makred with publicatation State archived respectively deleted. All content available for the client is in state published.",
+            "enum" : [ "published", "archived", "deleted" ]
+          }
+        },
+        "description" : "A content unit reflects a piece of content in censhare represented by a article asset. A contnet unit consist one one hand of the content itself like text in different languages and images. On the other hand metadata related to the content unit is maintained in censhare. The content unit summary provides mainly metadata and linkt to get the content itself."
+      }
+    }
+  }
+}
